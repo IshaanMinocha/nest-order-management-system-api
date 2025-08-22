@@ -1,7 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsPositive, IsEnum, IsNumber, Min } from 'class-validator';
+import { IsInt, IsPositive, IsEnum } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { RequestedUom } from '@prisma/client';
+import { IsValidQuantity } from '../../common/validators/custom-validators';
 
 export class CreateOrderItemDto {
   @ApiProperty({
@@ -15,11 +16,11 @@ export class CreateOrderItemDto {
   @ApiProperty({
     description: 'Requested quantity',
     example: 5,
-    minimum: 0,
+    minimum: 0.0001,
+    maximum: 1000000,
   })
   @Transform(({ value }) => parseFloat(value))
-  @IsNumber({ maxDecimalPlaces: 4 })
-  @Min(0.0001)
+  @IsValidQuantity()
   quantityRequested: number;
 
   @ApiProperty({

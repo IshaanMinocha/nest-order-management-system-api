@@ -6,10 +6,15 @@ import {
   IsEnum,
   IsNumber,
   IsPositive,
-  Min,
+  MaxLength,
+  Matches,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { BaseUom } from '@prisma/client';
+import {
+  IsValidPrice,
+  IsSafeString,
+} from '../../common/validators/custom-validators';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -18,6 +23,8 @@ export class CreateProductDto {
   })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(100)
+  @IsSafeString()
   name: string;
 
   @ApiProperty({
@@ -27,6 +34,8 @@ export class CreateProductDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(500)
+  @IsSafeString()
   description?: string;
 
   @ApiProperty({
@@ -53,8 +62,7 @@ export class CreateProductDto {
     minimum: 0,
   })
   @Transform(({ value }) => parseFloat(value))
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
+  @IsValidPrice()
   pricePerBaseUom: number;
 
   @ApiProperty({
@@ -64,5 +72,10 @@ export class CreateProductDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(50)
+  @Matches(/^[A-Z0-9\-_]+$/, {
+    message:
+      'SKU must contain only uppercase letters, numbers, hyphens, and underscores',
+  })
   sku?: string;
 }
