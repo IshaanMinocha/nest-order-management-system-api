@@ -8,6 +8,10 @@
 .env.local
 .env.*.local
 
+# Prisma
+prisma/migrations/
+node_modules/.prisma/
+
 # Logs
 logs
 *.log
