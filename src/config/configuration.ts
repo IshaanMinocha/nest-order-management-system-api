@@ -7,7 +7,9 @@ export default registerAs('app', () => ({
     url: process.env.DATABASE_URL,
   },
   jwt: {
-    secret: process.env.JWT_SECRET,
+    secret:
+      process.env.JWT_SECRET ||
+      'your-super-secret-jwt-key-change-this-in-production',
   },
   logging: {
     level: process.env.LOG_LEVEL || 'info',

@@ -6,16 +6,16 @@ import {
   RequestedUom,
   AuditAction,
 } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('Starting database seed...');
 
-  const adminPassword = process.env.ADMIN_PASSWORD!;
-  const hashedPassword = await bcrypt.hash(adminPassword || 'password123', 10);
-  const adminEmail = process.env.ADMIN_EMAIL!;
+  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
+  const hashedPassword = await argon2.hash(adminPassword);
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@oms.com';
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
