@@ -3,17 +3,24 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 // import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateOrderStatusDto } from './dto';
 import { OrderStatus } from '@prisma/client';
+import { OrdersGateway } from '../websockets/orders.gateway';
 
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => OrdersGateway))
+    private readonly ordersGateway: OrdersGateway,
+  ) {}
 
   async updateOrderStatus(
     orderId: number,
@@ -89,6 +96,36 @@ export class AdminService {
     this.logger.log(
       `Order ${order.orderNumber} status changed from ${currentStatus} to ${newStatus} by admin ${adminId}`,
     );
+
+    // Get admin info for WebSocket broadcast
+    const admin = await this.prisma.user.findUnique({
+      where: { id: adminId },
+      select: { id: true, email: true, role: true },
+    });
+
+    // Extract supplier IDs from order items
+    const supplierIds = [
+      ...new Set(order.items.map((item) => item.product.supplierId)),
+    ];
+
+    // Broadcast real-time update via WebSocket
+    if (this.ordersGateway) {
+      this.ordersGateway.broadcastOrderStatusUpdate({
+        orderId: order.id,
+        buyerId: order.buyerId,
+        supplierIds,
+        orderNumber: order.orderNumber,
+        oldStatus: currentStatus,
+        newStatus,
+        updatedBy: {
+          id: admin?.id || adminId,
+          email: admin?.email || 'unknown',
+          role: admin?.role || 'ADMIN',
+        },
+        updatedAt: new Date().toISOString(),
+        reason: reason || `Status changed to ${newStatus}`,
+      });
+    }
 
     // Return updated order
     return this.prisma.order.findUnique({
@@ -206,14 +243,14 @@ export class AdminService {
         status: item.status,
         count: item._count.status,
       })),
-      revenueBySupplier: revenueBySupplier.map((item) => ({
+      revenueBySupplier: (revenueBySupplier as any[]).map((item: any) => ({
         supplierId: item.supplierId,
         supplierEmail: item.supplierEmail,
         supplierName: item.supplierName || 'Unknown',
         totalRevenue: item.totalRevenue.toNumber(),
         orderCount: Number(item.orderCount),
       })),
-      topProducts: topProducts.map((item) => ({
+      topProducts: (topProducts as any[]).map((item: any) => ({
         productId: item.productId,
         productName: item.productName,
         baseUom: item.baseUom,

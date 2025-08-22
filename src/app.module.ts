@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { OrdersModule } from './orders/orders.module';
 import { AdminModule } from './admin/admin.module';
+import { WebsocketsModule } from './websockets/websockets.module';
 import configuration from './config/configuration';
 import { validate } from './config/validation';
 
@@ -33,6 +34,7 @@ import { validate } from './config/validation';
     ProductsModule,
     OrdersModule,
     AdminModule,
+    WebsocketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

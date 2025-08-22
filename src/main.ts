@@ -1,14 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { ValidationPipe } from './common/pipes/validation.pipe';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+  });
 
   app.useLogger(app.get(Logger));
+
+  // Serve static files for WebSocket test page
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   app.enableCors();
 
@@ -38,5 +45,9 @@ async function bootstrap() {
   console.log(
     `Swagger documentation available at: http://localhost:${port}/docs`,
   );
+  console.log(
+    `WebSocket test page available at: http://localhost:${port}/websocket-test.html`,
+  );
+  console.log(`WebSocket endpoint: ws://localhost:${port}/orders`);
 }
 void bootstrap();

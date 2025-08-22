@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMS WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        .logs {
+            background: #f5f5f5;
+            padding: 10px;
+            height: 300px;
+            overflow-y: scroll;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+
+        input,
+        select {
+            margin: 5px;
+            padding: 5px;
+        }
+
+        .connected {
+            color: green;
+        }
+
+        .disconnected {
+            color: red;
+        }
+
+        .update {
+            background: #e8f5e8;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Order Management System - WebSocket Test</h1>
+
+    <div class="container">
+        <div class="panel">
+            <h3>Connection Control</h3>
+            <div>
+                <label>User ID: <input type="number" id="userId" value="1"></label><br>
+                <label>User Role:
+                    <select id="userRole">
+                        <option value="BUYER">Buyer</option>
+                        <option value="SUPPLIER">Supplier</option>
+                        <option value="ADMIN">Admin</option>
+                    </select>
+                </label><br>
+                <button onclick="connect()">Connect</button>
+                <button onclick="disconnect()">Disconnect</button>
+                <div id="status" class="disconnected">Disconnected</div>
+            </div>
+
+            <h4>Room Management</h4>
+            <div>
+                <label>Order ID: <input type="number" id="orderId" value="1"></label><br>
+                <button onclick="joinOrderRoom()">Join Order Room</button>
+                <button onclick="leaveOrderRoom()">Leave Order Room</button>
+            </div>
+
+            <h4>Test Actions</h4>
+            <div>
+                <button onclick="createTestOrder()">Create Test Order</button>
+                <button onclick="approveOrder()">Approve Order</button>
+                <button onclick="fulfillOrder()">Fulfill Order</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>Event Logs</h3>
+            <button onclick="clearLogs()">Clear Logs</button>
+            <div id="logs" class="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let currentUserId = null;
+        let currentUserRole = null;
+
+        function log(message) {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logs.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+        }
+
+        function connect() {
+            if (socket && socket.connected) {
+                log('Already connected!');
+                return;
+            }
+
+            currentUserId = parseInt(document.getElementById('userId').value);
+            currentUserRole = document.getElementById('userRole').value;
+
+            log('Connecting to WebSocket server...');
+            socket = io('http://localhost:3000/orders');
+
+            socket.on('connect', () => {
+                log(`<span class="connected">Connected to server! Socket ID: ${socket.id}</span>`);
+                document.getElementById('status').innerHTML = '<span class="connected">Connected</span>';
+
+                // Join user room automatically
+                socket.emit('join-user-room', {
+                    userId: currentUserId,
+                    userRole: currentUserRole
+                });
+            });
+
+            socket.on('disconnect', () => {
+                log('<span class="disconnected">Disconnected from server</span>');
+                document.getElementById('status').innerHTML = '<span class="disconnected">Disconnected</span>';
+            });
+
+            socket.on('order-update', (data) => {
+                log(`<div class="update"><strong>ORDER UPDATE:</strong><br>${JSON.stringify(data, null, 2)}</div>`);
+            });
+
+            socket.on('stock-update', (data) => {
+                log(`<div class="update"><strong>STOCK UPDATE:</strong><br>${JSON.stringify(data, null, 2)}</div>`);
+            });
+
+            // Response from join-user-room
+            socket.on('join-user-room', (response) => {
+                log(`Join user room response: ${JSON.stringify(response)}`);
+            });
+
+            // Response from join-order-room
+            socket.on('join-order-room', (response) => {
+                log(`Join order room response: ${JSON.stringify(response)}`);
+            });
+
+            socket.on('error', (error) => {
+                log(`<span style="color: red;">Error: ${error}</span>`);
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function joinOrderRoom() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server');
+                return;
+            }
+
+            const orderId = parseInt(document.getElementById('orderId').value);
+            socket.emit('join-order-room', { orderId });
+            log(`Attempting to join order room: order-${orderId}`);
+        }
+
+        function leaveOrderRoom() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server');
+                return;
+            }
+
+            const orderId = parseInt(document.getElementById('orderId').value);
+            socket.emit('leave-order-room', { orderId });
+            log(`Attempting to leave order room: order-${orderId}`);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Test functions to simulate API calls
+        async function createTestOrder() {
+            log('Creating test order via API...');
+            try {
+                const response = await fetch('http://localhost:3000/api/v1/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_JWT_TOKEN_HERE' // Replace with actual token
+                    },
+                    body: JSON.stringify({
+                        items: [
+                            {
+                                productId: 1,
+                                quantityRequested: 1,
+                                requestedUom: 'KILOGRAM'
+                            }
+                        ],
+                        notes: 'Test order from WebSocket test page'
+                    })
+                });
+
+                if (response.ok) {
+                    const order = await response.json();
+                    log(`Order created: ${order.orderNumber}`);
+                    document.getElementById('orderId').value = order.id;
+                } else {
+                    log(`Failed to create order: ${response.status}`);
+                }
+            } catch (error) {
+                log(`Error creating order: ${error.message}`);
+            }
+        }
+
+        async function approveOrder() {
+            const orderId = document.getElementById('orderId').value;
+            log(`Approving order ${orderId} via API...`);
+            try {
+                const response = await fetch(`http://localhost:3000/api/v1/admin/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_ADMIN_JWT_TOKEN_HERE' // Replace with actual admin token
+                    },
+                    body: JSON.stringify({
+                        status: 'APPROVED',
+                        reason: 'Approved via WebSocket test page'
+                    })
+                });
+
+                if (response.ok) {
+                    log(`Order ${orderId} approved successfully`);
+                } else {
+                    log(`Failed to approve order: ${response.status}`);
+                }
+            } catch (error) {
+                log(`Error approving order: ${error.message}`);
+            }
+        }
+
+        async function fulfillOrder() {
+            const orderId = document.getElementById('orderId').value;
+            log(`Fulfilling order ${orderId} via API...`);
+            try {
+                const response = await fetch(`http://localhost:3000/api/v1/admin/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer YOUR_ADMIN_JWT_TOKEN_HERE' // Replace with actual admin token
+                    },
+                    body: JSON.stringify({
+                        status: 'FULFILLED',
+                        reason: 'Fulfilled via WebSocket test page'
+                    })
+                });
+
+                if (response.ok) {
+                    log(`Order ${orderId} fulfilled successfully`);
+                } else {
+                    log(`Failed to fulfill order: ${response.status}`);
+                }
+            } catch (error) {
+                log(`Error fulfilling order: ${error.message}`);
+            }
+        }
+
+        // Instructions
+        window.onload = function () {
+            log('WebSocket Test Page Loaded');
+            log('Instructions:');
+            log('1. First login via Postman to get JWT tokens');
+            log('2. Update the API calls above with your actual JWT tokens');
+            log('3. Connect to WebSocket server');
+            log('4. Create orders and watch for real-time updates!');
+            log('');
+        };
+    </script>
+</body>
+
+</html>

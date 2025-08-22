@@ -4,12 +4,15 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from '../prisma/prisma.service';
 import { UomConversionService } from '../common/services/uom-conversion.service';
 import { CreateOrderDto } from './dto';
 import { UserRole, OrderStatus } from '@prisma/client';
+import { OrdersGateway } from '../websockets/orders.gateway';
 
 @Injectable()
 export class OrdersService {
@@ -18,6 +21,8 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uomConversion: UomConversionService,
+    @Inject(forwardRef(() => OrdersGateway))
+    private readonly ordersGateway: OrdersGateway,
   ) {}
 
   async create(buyerId: number, createOrderDto: CreateOrderDto) {
@@ -135,6 +140,32 @@ export class OrdersService {
     });
 
     this.logger.log(`Order created: ${orderNumber} by buyer ${buyerId}`);
+
+    // Extract supplier IDs from order items for WebSocket broadcast
+    const supplierIds = [
+      ...new Set(
+        orderItems
+          .map((item) => {
+            const product = products.find((p) => p.id === item.productId);
+            return product?.supplierId;
+          })
+          .filter(Boolean) as number[],
+      ),
+    ];
+
+    // Broadcast new order creation via WebSocket
+    if (this.ordersGateway) {
+      this.ordersGateway.broadcastNewOrder({
+        orderId: order.id,
+        buyerId,
+        supplierIds,
+        orderNumber,
+        totalAmount,
+        itemCount: orderItems.length,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     return this.findOne(order.id);
   }
 
