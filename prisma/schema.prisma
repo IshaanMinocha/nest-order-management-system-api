@@ -7,11 +7,177 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+    BUYER
+    SUPPLIER
+    ADMIN
+
+    @@map("user_roles")
+}
+
+enum OrderStatus {
+    PENDING
+    APPROVED
+    FULFILLED
+    CANCELLED
+
+    @@map("order_statuses")
+}
+
+enum BaseUom {
+    GRAM
+    MILLILITER
+    PIECE
+    METER
+    LITER
+    KILOGRAM
+
+    @@map("base_uoms")
+}
+
+enum RequestedUom {
+    GRAM
+    KILOGRAM
+    TON
+    MILLILITER
+    LITER
+    PIECE
+    METER
+    CENTIMETER
+    KILOMETER
+
+    @@map("requested_uoms")
+}
+
+enum AuditAction {
+    CREATE
+    UPDATE
+    DELETE
+
+    @@map("audit_actions")
+}
+
 model User {
-    id        Int      @id @default(autoincrement())
-    email     String   @unique
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id           Int      @id @default(autoincrement())
+    email        String   @unique
+    passwordHash String   @map("password_hash")
+    firstName    String?  @map("first_name")
+    lastName     String?  @map("last_name")
+    role         UserRole
+    isActive     Boolean  @default(true) @map("is_active")
+    createdAt    DateTime @default(now()) @map("created_at")
+    updatedAt    DateTime @updatedAt @map("updated_at")
+
+    suppliedProducts Product[]            @relation("SupplierProducts")
+    orders           Order[]              @relation("BuyerOrders")
+    statusChanges    OrderStatusHistory[]
+    auditLogs        AuditLog[]           @relation("AuditLogChangedBy")
 
     @@map("users")
+}
+
+model Product {
+    id                     Int      @id @default(autoincrement())
+    supplierId             Int      @map("supplier_id")
+    name                   String
+    description            String?
+    baseUom                BaseUom  @map("base_uom")
+    conversionFactorToBase Decimal  @map("conversion_factor_to_base") @db.Decimal(10, 4)
+    pricePerBaseUom        Decimal  @map("price_per_base_uom") @db.Decimal(10, 2)
+    sku                    String?  @unique
+    isActive               Boolean  @default(true) @map("is_active")
+    createdAt              DateTime @default(now()) @map("created_at")
+    updatedAt              DateTime @updatedAt @map("updated_at")
+
+    supplier   User        @relation("SupplierProducts", fields: [supplierId], references: [id])
+    inventory  Inventory?
+    orderItems OrderItem[]
+
+    @@map("products")
+}
+
+model Inventory {
+    id                Int       @id @default(autoincrement())
+    productId         Int       @unique @map("product_id")
+    quantityInBaseUom Decimal   @map("quantity_in_base_uom") @db.Decimal(12, 4)
+    reservedQuantity  Decimal   @default(0) @map("reserved_quantity") @db.Decimal(12, 4)
+    reorderLevel      Decimal?  @map("reorder_level") @db.Decimal(12, 4)
+    maxStockLevel     Decimal?  @map("max_stock_level") @db.Decimal(12, 4)
+    lastRestockedAt   DateTime? @map("last_restocked_at")
+    createdAt         DateTime  @default(now()) @map("created_at")
+    updatedAt         DateTime  @updatedAt @map("updated_at")
+
+    product Product @relation(fields: [productId], references: [id])
+
+    @@map("inventory")
+}
+
+model Order {
+    id          Int         @id @default(autoincrement())
+    buyerId     Int         @map("buyer_id")
+    orderNumber String      @unique @map("order_number")
+    status      OrderStatus @default(PENDING)
+    totalAmount Decimal     @map("total_amount") @db.Decimal(12, 2)
+    notes       String?
+    createdAt   DateTime    @default(now()) @map("created_at")
+    updatedAt   DateTime    @updatedAt @map("updated_at")
+
+    buyer         User                 @relation("BuyerOrders", fields: [buyerId], references: [id])
+    items         OrderItem[]
+    statusHistory OrderStatusHistory[]
+
+    @@map("orders")
+}
+
+model OrderItem {
+    id                 Int          @id @default(autoincrement())
+    orderId            Int          @map("order_id")
+    productId          Int          @map("product_id")
+    quantityRequested  Decimal      @map("quantity_requested") @db.Decimal(10, 4)
+    requestedUom       RequestedUom @map("requested_uom")
+    quantityInBaseUom  Decimal      @map("quantity_in_base_uom") @db.Decimal(12, 4)
+    unitPriceInBaseUom Decimal      @map("unit_price_in_base_uom") @db.Decimal(10, 2)
+    lineTotal          Decimal      @map("line_total") @db.Decimal(12, 2)
+    createdAt          DateTime     @default(now()) @map("created_at")
+    updatedAt          DateTime     @updatedAt @map("updated_at")
+
+    order   Order   @relation(fields: [orderId], references: [id])
+    product Product @relation(fields: [productId], references: [id])
+
+    @@map("order_items")
+}
+
+model OrderStatusHistory {
+    id          Int          @id @default(autoincrement())
+    orderId     Int          @map("order_id")
+    fromStatus  OrderStatus? @map("from_status")
+    toStatus    OrderStatus  @map("to_status")
+    changedById Int          @map("changed_by_id")
+    reason      String?
+    changedAt   DateTime     @default(now()) @map("changed_at")
+
+    order     Order @relation(fields: [orderId], references: [id])
+    changedBy User  @relation(fields: [changedById], references: [id])
+
+    @@map("order_status_history")
+}
+
+model AuditLog {
+    id          Int         @id @default(autoincrement())
+    entityType  String      @map("entity_type")
+    entityId    Int         @map("entity_id")
+    action      AuditAction
+    oldValues   Json?       @map("old_values")
+    newValues   Json?       @map("new_values")
+    changedById Int?        @map("changed_by_id")
+    ipAddress   String?     @map("ip_address")
+    userAgent   String?     @map("user_agent")
+    createdAt   DateTime    @default(now()) @map("created_at")
+
+    changedBy User? @relation("AuditLogChangedBy", fields: [changedById], references: [id])
+
+    @@index([entityType, entityId])
+    @@index([changedById])
+    @@index([createdAt])
+    @@map("audit_logs")
 }
