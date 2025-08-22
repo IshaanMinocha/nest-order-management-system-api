@@ -1,0 +1,95 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: oms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: oms_db
+      POSTGRES_USER: oms_user
+      POSTGRES_PASSWORD: oms_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U oms_user -d oms_db']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - oms-network
+
+  # NestJS Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: oms-app
+    restart: unless-stopped
+    env_file:
+      - docker.env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://oms_user:oms_password@postgres:5432/oms_db?schema=public
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production-docker
+      LOG_LEVEL: info
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - oms-network
+
+  # Development version (optional)
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: oms-app-dev
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://oms_user:oms_password@postgres:5432/oms_db?schema=public
+      JWT_SECRET: your-super-secret-jwt-key-change-this-in-development
+      LOG_LEVEL: debug
+    ports:
+      - '3001:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - oms-network
+    profiles:
+      - dev
+    # Override entrypoint for development
+    command: sh -c "npx prisma migrate deploy && (npx prisma db seed || echo 'Seed failed, continuing...') && npm run start:dev"
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  oms-network:
+    driver: bridge
