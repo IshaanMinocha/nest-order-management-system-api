@@ -110,7 +110,7 @@ describe('PasswordService', () => {
 
       mockedArgon2.verify.mockResolvedValue(true);
 
-      const result = await service.verifyPassword(password, hashedPassword);
+      const result = await service.verifyPassword(hashedPassword, password);
 
       expect(result).toBe(true);
       expect(argon2.verify).toHaveBeenCalledWith(hashedPassword, password);
@@ -122,7 +122,7 @@ describe('PasswordService', () => {
 
       mockedArgon2.verify.mockResolvedValue(false);
 
-      const result = await service.verifyPassword(password, hashedPassword);
+      const result = await service.verifyPassword(hashedPassword, password);
 
       expect(result).toBe(false);
       expect(argon2.verify).toHaveBeenCalledWith(hashedPassword, password);
@@ -134,7 +134,7 @@ describe('PasswordService', () => {
 
       mockedArgon2.verify.mockResolvedValue(true);
 
-      const result = await service.verifyPassword(password, hashedPassword);
+      const result = await service.verifyPassword(hashedPassword, password);
 
       expect(result).toBe(true);
       expect(argon2.verify).toHaveBeenCalledWith(hashedPassword, password);
@@ -146,7 +146,7 @@ describe('PasswordService', () => {
 
       mockedArgon2.verify.mockResolvedValue(true);
 
-      const result = await service.verifyPassword(password, hashedPassword);
+      const result = await service.verifyPassword(hashedPassword, password);
 
       expect(result).toBe(true);
       expect(argon2.verify).toHaveBeenCalledWith(hashedPassword, password);
@@ -159,7 +159,7 @@ describe('PasswordService', () => {
 
       mockedArgon2.verify.mockRejectedValue(error);
 
-      const result = await service.verifyPassword(password, hashedPassword);
+      const result = await service.verifyPassword(hashedPassword, password);
 
       expect(result).toBe(false);
     });

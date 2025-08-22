@@ -6,20 +6,37 @@ import {
   RequestedUom,
   AuditAction,
 } from '@prisma/client';
-import * as argon2 from 'argon2';
 
 const prisma = new PrismaClient();
+
+// Simple password hashing function that matches PasswordService exactly
+import * as argon2 from 'argon2';
+
+async function hashPassword(password: string): Promise<string> {
+  try {
+    return await argon2.hash(password, {
+      type: argon2.argon2id,
+      memoryCost: 2 ** 16,
+      timeCost: 3,
+      parallelism: 1,
+    });
+  } catch {
+    throw new Error('Failed to hash password');
+  }
+}
 
 async function main() {
   console.log('Starting database seed...');
 
   const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
-  const hashedPassword = await argon2.hash(adminPassword);
+  const hashedPassword = await hashPassword(adminPassword);
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@oms.com';
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: {
+      passwordHash: hashedPassword,
+    },
     create: {
       email: adminEmail,
       passwordHash: hashedPassword,
@@ -31,7 +48,9 @@ async function main() {
 
   const supplier1 = await prisma.user.upsert({
     where: { email: 'supplier1@oms.com' },
-    update: {},
+    update: {
+      passwordHash: hashedPassword,
+    },
     create: {
       email: 'supplier1@oms.com',
       passwordHash: hashedPassword,
@@ -43,7 +62,9 @@ async function main() {
 
   const buyer1 = await prisma.user.upsert({
     where: { email: 'buyer1@oms.com' },
-    update: {},
+    update: {
+      passwordHash: hashedPassword,
+    },
     create: {
       email: 'buyer1@oms.com',
       passwordHash: hashedPassword,
@@ -55,8 +76,10 @@ async function main() {
 
   console.log('Users created');
 
-  const riceProduct = await prisma.product.create({
-    data: {
+  const riceProduct = await prisma.product.upsert({
+    where: { sku: 'RICE-BASMATI-001' },
+    update: {},
+    create: {
       supplierId: supplier1.id,
       name: 'Premium Basmati Rice',
       description: 'High-quality basmati rice from India',
@@ -67,8 +90,10 @@ async function main() {
     },
   });
 
-  const oilProduct = await prisma.product.create({
-    data: {
+  const oilProduct = await prisma.product.upsert({
+    where: { sku: 'OIL-OLIVE-001' },
+    update: {},
+    create: {
       supplierId: supplier1.id,
       name: 'Olive Oil Extra Virgin',
       description: 'Cold-pressed extra virgin olive oil',
@@ -79,8 +104,10 @@ async function main() {
     },
   });
 
-  const wheatProduct = await prisma.product.create({
-    data: {
+  const wheatProduct = await prisma.product.upsert({
+    where: { sku: 'FLOUR-WHEAT-001' },
+    update: {},
+    create: {
       supplierId: supplier1.id,
       name: 'Organic Wheat Flour',
       description: 'Stone-ground organic wheat flour',
@@ -91,8 +118,10 @@ async function main() {
     },
   });
 
-  const honeyProduct = await prisma.product.create({
-    data: {
+  const honeyProduct = await prisma.product.upsert({
+    where: { sku: 'HONEY-WILD-001' },
+    update: {},
+    create: {
       supplierId: supplier1.id,
       name: 'Wild Flower Honey',
       description: 'Pure wild flower honey',
@@ -105,39 +134,63 @@ async function main() {
 
   console.log('Products created');
 
-  await prisma.inventory.createMany({
-    data: [
-      {
-        productId: riceProduct.id,
-        quantityInBaseUom: 50000,
-        reorderLevel: 10000,
-        maxStockLevel: 100000,
-      },
-      {
-        productId: oilProduct.id,
-        quantityInBaseUom: 25000,
-        reorderLevel: 5000,
-        maxStockLevel: 50000,
-      },
-      {
-        productId: wheatProduct.id,
-        quantityInBaseUom: 75000,
-        reorderLevel: 15000,
-        maxStockLevel: 150000,
-      },
-      {
-        productId: honeyProduct.id,
-        quantityInBaseUom: 20000,
-        reorderLevel: 3000,
-        maxStockLevel: 40000,
-      },
-    ],
+  await prisma.inventory.upsert({
+    where: { productId: riceProduct.id },
+    update: {},
+    create: {
+      productId: riceProduct.id,
+      quantityInBaseUom: 50000,
+      reorderLevel: 10000,
+      maxStockLevel: 100000,
+    },
+  });
+
+  await prisma.inventory.upsert({
+    where: { productId: oilProduct.id },
+    update: {},
+    create: {
+      productId: oilProduct.id,
+      quantityInBaseUom: 25000,
+      reorderLevel: 5000,
+      maxStockLevel: 50000,
+    },
+  });
+
+  await prisma.inventory.upsert({
+    where: { productId: wheatProduct.id },
+    update: {},
+    create: {
+      productId: wheatProduct.id,
+      quantityInBaseUom: 75000,
+      reorderLevel: 15000,
+      maxStockLevel: 150000,
+    },
+  });
+
+  await prisma.inventory.upsert({
+    where: { productId: honeyProduct.id },
+    update: {},
+    create: {
+      productId: honeyProduct.id,
+      quantityInBaseUom: 20000,
+      reorderLevel: 3000,
+      maxStockLevel: 40000,
+    },
   });
 
   console.log('Inventory created');
 
-  const order1 = await prisma.order.create({
-    data: {
+  // Clean existing order-related data to avoid conflicts
+  await prisma.auditLog.deleteMany({
+    where: { entityType: 'Order' },
+  });
+  await prisma.orderStatusHistory.deleteMany();
+  await prisma.orderItem.deleteMany();
+
+  const order1 = await prisma.order.upsert({
+    where: { orderNumber: 'ORD-2024-001' },
+    update: {},
+    create: {
       buyerId: buyer1.id,
       orderNumber: 'ORD-2024-001',
       status: OrderStatus.PENDING,
@@ -146,8 +199,10 @@ async function main() {
     },
   });
 
-  const order2 = await prisma.order.create({
-    data: {
+  const order2 = await prisma.order.upsert({
+    where: { orderNumber: 'ORD-2024-002' },
+    update: {},
+    create: {
       buyerId: buyer1.id,
       orderNumber: 'ORD-2024-002',
       status: OrderStatus.APPROVED,

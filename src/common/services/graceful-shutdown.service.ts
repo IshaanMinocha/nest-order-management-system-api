@@ -160,7 +160,7 @@ export class GracefulShutdownService implements OnApplicationShutdown {
     // Log shutdown metrics
     this.registerShutdownTask(
       'shutdown-metrics',
-      () => {
+      async () => {
         const memoryUsage = process.memoryUsage();
         const uptime = process.uptime();
 
