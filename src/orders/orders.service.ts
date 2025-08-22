@@ -385,17 +385,35 @@ export class OrdersService {
       buyerEmail: order.buyer?.email,
       orderNumber: order.orderNumber,
       status: order.status,
-      totalAmount: order.totalAmount,
+      totalAmount:
+        typeof order.totalAmount === 'object' && order.totalAmount.toNumber
+          ? order.totalAmount.toNumber()
+          : Number(order.totalAmount),
       notes: order.notes,
       items: order.items.map((item: any) => ({
         id: item.id,
         productId: item.productId,
         productName: item.product.name,
-        quantityRequested: item.quantityRequested,
+        quantityRequested:
+          typeof item.quantityRequested === 'object' &&
+          item.quantityRequested.toNumber
+            ? item.quantityRequested.toNumber()
+            : Number(item.quantityRequested),
         requestedUom: item.requestedUom,
-        quantityInBaseUom: item.quantityInBaseUom,
-        unitPriceInBaseUom: item.unitPriceInBaseUom,
-        lineTotal: item.lineTotal,
+        quantityInBaseUom:
+          typeof item.quantityInBaseUom === 'object' &&
+          item.quantityInBaseUom.toNumber
+            ? item.quantityInBaseUom.toNumber()
+            : Number(item.quantityInBaseUom),
+        unitPriceInBaseUom:
+          typeof item.unitPriceInBaseUom === 'object' &&
+          item.unitPriceInBaseUom.toNumber
+            ? item.unitPriceInBaseUom.toNumber()
+            : Number(item.unitPriceInBaseUom),
+        lineTotal:
+          typeof item.lineTotal === 'object' && item.lineTotal.toNumber
+            ? item.lineTotal.toNumber()
+            : Number(item.lineTotal),
         supplier: item.product.supplier,
       })),
       statusHistory: order.statusHistory || [],

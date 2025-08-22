@@ -63,6 +63,11 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
+
+    // Mock the logger to suppress error messages during testing
+    jest.spyOn(service['logger'], 'error').mockImplementation();
+    jest.spyOn(service['logger'], 'warn').mockImplementation();
+    jest.spyOn(service['logger'], 'log').mockImplementation();
   });
 
   afterEach(() => {

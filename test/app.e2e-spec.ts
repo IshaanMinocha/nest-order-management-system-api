@@ -13,7 +13,13 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.enableCors();
+    app.setGlobalPrefix('api');
     await app.init();
+  });
+
+  afterEach(async () => {
+    await app.close();
   });
 
   it('/api/v1 (GET)', () => {

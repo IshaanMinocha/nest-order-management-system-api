@@ -49,6 +49,12 @@ describe('Authentication (e2e)', () => {
     app.enableCors();
     app.setGlobalPrefix('api');
 
+    // Import and apply the validation pipe
+    const { ValidationPipe } = await import(
+      '../src/common/pipes/validation.pipe'
+    );
+    app.useGlobalPipes(ValidationPipe);
+
     await app.init();
 
     prisma = app.get<PrismaService>(PrismaService);
@@ -60,6 +66,7 @@ describe('Authentication (e2e)', () => {
 
   afterAll(async () => {
     await cleanupTestData();
+    await prisma.$disconnect();
     await app.close();
   });
 

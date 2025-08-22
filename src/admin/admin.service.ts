@@ -300,9 +300,15 @@ export class AdminService {
         .sub(currentInventory.reservedQuantity)
         .toNumber();
 
-      if (availableStock < item.quantityInBaseUom) {
+      const requiredQuantity =
+        typeof item.quantityInBaseUom === 'object' &&
+        item.quantityInBaseUom.toNumber
+          ? item.quantityInBaseUom.toNumber()
+          : Number(item.quantityInBaseUom);
+
+      if (availableStock < requiredQuantity) {
         throw new BadRequestException(
-          `Insufficient stock for product ${item.product.name}. Available: ${availableStock}, Required: ${item.quantityInBaseUom}`,
+          `Insufficient stock for product ${item.product.name}. Available: ${availableStock}, Required: ${requiredQuantity}`,
         );
       }
 
@@ -311,7 +317,7 @@ export class AdminService {
         where: { productId: item.productId },
         data: {
           quantityInBaseUom: {
-            decrement: item.quantityInBaseUom,
+            decrement: requiredQuantity,
           },
         },
       });
@@ -320,12 +326,18 @@ export class AdminService {
 
   private async restoreStockForOrder(tx: any, order: any) {
     for (const item of order.items) {
+      const quantityToRestore =
+        typeof item.quantityInBaseUom === 'object' &&
+        item.quantityInBaseUom.toNumber
+          ? item.quantityInBaseUom.toNumber()
+          : Number(item.quantityInBaseUom);
+
       // Restore stock by adding back the quantity
       await tx.inventory.update({
         where: { productId: item.productId },
         data: {
           quantityInBaseUom: {
-            increment: item.quantityInBaseUom,
+            increment: quantityToRestore,
           },
         },
       });

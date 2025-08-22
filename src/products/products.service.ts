@@ -83,7 +83,11 @@ export class ProductsService {
 
     return products.map((product) => ({
       ...product,
-      availableStock: product.inventory?.quantityInBaseUom?.toNumber() || 0,
+      availableStock: product.inventory
+        ? product.inventory.quantityInBaseUom
+            .sub(product.inventory.reservedQuantity)
+            .toNumber()
+        : 0,
     }));
   }
 
@@ -109,7 +113,11 @@ export class ProductsService {
 
     return {
       ...product,
-      availableStock: product.inventory?.quantityInBaseUom?.toNumber() || 0,
+      availableStock: product.inventory
+        ? product.inventory.quantityInBaseUom
+            .sub(product.inventory.reservedQuantity)
+            .toNumber()
+        : 0,
     };
   }
 
@@ -127,7 +135,11 @@ export class ProductsService {
 
     return products.map((product) => ({
       ...product,
-      availableStock: product.inventory?.quantityInBaseUom?.toNumber() || 0,
+      availableStock: product.inventory
+        ? product.inventory.quantityInBaseUom
+            .sub(product.inventory.reservedQuantity)
+            .toNumber()
+        : 0,
     }));
   }
 
@@ -231,7 +243,9 @@ export class ProductsService {
 
     return {
       ...product,
-      availableStock: updatedInventory.quantityInBaseUom.toNumber(),
+      availableStock: updatedInventory.quantityInBaseUom
+        .sub(updatedInventory.reservedQuantity)
+        .toNumber(),
       inventory: updatedInventory,
     };
   }
