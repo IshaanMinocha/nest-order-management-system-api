@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from './services/password.service';
-import { AuthResponseDto } from './dto';
+import { AuthResponseDto, RegisterDto } from './dto';
 import { User, UserRole } from '@prisma/client';
 
 @Injectable()
@@ -102,5 +102,41 @@ export class AuthService {
     });
 
     return user ? roles.includes(user.role) : false;
+  }
+
+  async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: registerDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    // Hash password
+    const passwordHash = await this.passwordService.hashPassword(
+      registerDto.password,
+    );
+
+    // Create user
+    const user = await this.prisma.user.create({
+      data: {
+        email: registerDto.email,
+        passwordHash,
+        firstName: registerDto.firstName,
+        lastName: registerDto.lastName,
+        role: registerDto.role,
+        isActive: true,
+      },
+    });
+
+    this.logger.log(`New user registered: ${user.email} as ${user.role}`);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _, ...userWithoutPassword } = user;
+
+    // Return login response
+    return this.login(userWithoutPassword);
   }
 }
