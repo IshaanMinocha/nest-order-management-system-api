@@ -83,6 +83,18 @@ npm run prisma:seed
 npm run start:dev
 ```
 
+### Postman Integration
+
+To quickly access all API endpoints in Postman:
+
+1. Go to the `/postman/oms-api-collections.json` file in this repository.
+2. Copy the entire contents of the JSON file.
+3. In Postman, click on **Import**.
+4. Select the **Raw Text** tab and paste the copied JSON.
+5. Click **Continue** and then **Import**.
+
+This will add the complete set of API endpoints to your Postman workspace for easy testing and exploration.
+
 ### Docker Deployment
 
 #### Quick Start
