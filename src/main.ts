@@ -108,7 +108,7 @@ async function bootstrap() {
     explorer: true,
     swaggerOptions: {
       docExpansion: 'none',
-      filter: true,
+      // filter: true,
       showRequestDuration: true,
       tryItOutEnabled: true,
       persistAuthorization: true,
