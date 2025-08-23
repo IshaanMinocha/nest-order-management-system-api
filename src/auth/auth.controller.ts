@@ -15,7 +15,7 @@ import { AuthService } from './auth.service';
 import { LoginDto, RegisterDto, AuthResponseDto } from './dto';
 // import { User } from '@prisma/client';
 
-@ApiTags('auth')
+@ApiTags('Authentication')
 @Controller('v1/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

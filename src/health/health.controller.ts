@@ -4,7 +4,7 @@ import { HealthService } from './health.service';
 import { PerformanceMonitorService } from '../common/services/performance-monitor.service';
 import { CircuitBreakerService } from '../common/services/circuit-breaker.service';
 
-@ApiTags('health')
+@ApiTags('Health')
 @Controller('health')
 export class HealthController {
   constructor(

@@ -23,7 +23,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
 import { UserRole, User } from '@prisma/client';
 
-@ApiTags('products')
+@ApiTags('Products')
 @Controller('v1/products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}

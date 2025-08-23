@@ -21,7 +21,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
 import { UserRole, User, OrderStatus } from '@prisma/client';
 
-@ApiTags('orders')
+@ApiTags('Orders')
 @Controller('v1/orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}

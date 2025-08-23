@@ -19,7 +19,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
 import { UserRole, User } from '@prisma/client';
 
-@ApiTags('admin')
+@ApiTags('Admin')
 @Controller('v1/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)

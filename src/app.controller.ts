@@ -10,7 +10,7 @@ import { JwtAuthGuard, RolesGuard } from './auth/guards';
 import { Roles, CurrentUser } from './auth/decorators';
 import { UserRole, User } from '@prisma/client';
 
-@ApiTags('app')
+@ApiTags('Users')
 @Controller('v1')
 export class AppController {
   constructor(private readonly appService: AppService) {}
