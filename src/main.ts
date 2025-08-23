@@ -14,6 +14,8 @@ async function bootstrap() {
     bufferLogs: true,
   });
 
+  const prodLink = process.env.PROD_LINK || '';
+
   app.useLogger(app.get(Logger));
 
   app.use(
@@ -47,7 +49,6 @@ async function bootstrap() {
 
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  // Swagger Configuration - Production Ready
   const config = new DocumentBuilder()
     .setTitle('Order Management System API')
     .setDescription(
@@ -74,7 +75,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addServer(
       process.env.NODE_ENV === 'production'
-        ? 'https://oms-api.onrender.com'
+        ? prodLink
         : 'http://localhost:3000',
       process.env.NODE_ENV === 'production'
         ? 'Production Server'
@@ -136,19 +137,19 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(
-    `Application is running on: ${process.env.NODE_ENV === 'production' ? 'https://oms-api.onrender.com' : 'http://localhost:3000'}`,
+    `Application is running on: ${process.env.NODE_ENV === 'production' ? prodLink : 'http://localhost:3000'}`,
   );
   console.log(
-    `Swagger documentation available at: ${process.env.NODE_ENV === 'production' ? 'https://oms-api.onrender.com' : 'http://localhost:3000'}`,
+    `Swagger documentation available at: ${process.env.NODE_ENV === 'production' ? prodLink : 'http://localhost:3000'}`,
   );
   console.log(
-    `Health endpoint: ${process.env.NODE_ENV === 'production' ? 'https://oms-api.onrender.com' : 'http://localhost:3000'}/api/health`,
+    `Health endpoint: ${process.env.NODE_ENV === 'production' ? prodLink : 'http://localhost:3000'}/api/health`,
   );
   console.log(
-    `WebSocket test page available at: ${process.env.NODE_ENV === 'production' ? 'https://oms-api.onrender.com' : 'http://localhost:3000'}/websocket-test.html`,
+    `WebSocket test page available at: ${process.env.NODE_ENV === 'production' ? prodLink : 'http://localhost:3000'}/websocket-test.html`,
   );
   console.log(
-    `WebSocket endpoint: ${process.env.NODE_ENV === 'production' ? 'https://oms-api.onrender.com' : 'http://localhost:3000'}/orders`,
+    `WebSocket endpoint: ${process.env.NODE_ENV === 'production' ? prodLink : 'http://localhost:3000'}/orders`,
   );
 }
 void bootstrap();

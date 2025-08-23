@@ -194,7 +194,7 @@ After seeding the database, use these credentials:
 Interactive Swagger documentation is available at:
 
 - Local: http://localhost:3000/
-- Production: https://oms-api.onrender.com/
+- Production: https://oms-api-qotq.onrender.com/
 
 ## WebSocket Integration
 
